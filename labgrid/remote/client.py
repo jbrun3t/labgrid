@@ -768,6 +768,7 @@ class ClientSession(ApplicationSession):
         name = self.args.name
         target = self._get_target(place)
         from ..resource import ModbusTCPCoil, OneWirePIO, HttpDigitalOutput
+        from ..resource import NetworkGpiodGPIO
         from ..resource.remote import NetworkDeditecRelais8, NetworkSysfsGPIO, NetworkLXAIOBusPIO, NetworkHIDRelay
 
         drv = None
@@ -789,6 +790,8 @@ class ClientSession(ApplicationSession):
                     drv = self._get_driver_or_new(target, "LXAIOBusPIODriver", name=name)
                 elif isinstance(resource, NetworkHIDRelay):
                     drv = self._get_driver_or_new(target, "HIDRelayDriver", name=name)
+                elif isinstance(resource, NetworkGpiodGPIO):
+                    drv = self._get_driver_or_new(target, "GpiodDigitalOutputDriver", name=name)
                 if drv:
                     break
 
