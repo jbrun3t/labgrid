@@ -1384,6 +1384,12 @@ class ClientSession(ApplicationSession):
 
     export.needs_target = True
 
+    def apply_state(self):
+        if not self.args.state:
+            raise UserError(f"no target state provided to apply")
+        place = self.get_acquired_place()
+        self._get_target(place)
+
     def print_version(self):
         print(labgrid_version())
 
@@ -1865,6 +1871,11 @@ def main():
 
     subparser = subparsers.add_parser("version", help="show version")
     subparser.set_defaults(func=ClientSession.print_version)
+
+    subparser = subparsers.add_parser('apply-state',
+                                      aliases=('noop',),
+                                      help="just apply the strategy state")
+    subparser.set_defaults(func=ClientSession.apply_state)
 
     # make any leftover arguments available for some commands
     args, leftover = parser.parse_known_args()
