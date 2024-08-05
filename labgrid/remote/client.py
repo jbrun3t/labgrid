@@ -1073,18 +1073,42 @@ class ClientSession(ApplicationSession):
             drv = target.get_driver("SSHDriver", name=self.args.name)
             return drv
         except NoDriverFoundError:
-            from ..resource import NetworkService
+            pass
 
-            try:
-                resource = target.get_resource(NetworkService, name=self.args.name)
-            except NoResourceFoundError:
+        from ..resource import NetworkService
+        from ..resource.remote import RemoteBaseProvider
+        resource = None
+
+        # Check for a NetworkService if there is one
+        try:
+            resource = target.get_resource(NetworkService, name=self.args.name)
+        except NoResourceFoundError:
+            # If a named is provided, check if it matches a provider such TFTP or NFS
+            if self.args.name:
+                provider = target.get_resource(RemoteBaseProvider, name=self.args.name)
+                resource = NetworkService(target, address=provider.host,
+                                          name=provider.name + "_net")
+
+                # Treat the provider base directory as the remote root
+                try:
+                    if self.args.src.startswith(':'):
+                        self.args.src = self.args.src[:1] + provider.internal + '/' + self.args.src[1:]
+                    if self.args.dst.startswith(':'):
+                        self.args.dst = self.args.dst[:1] + provider.internal + '/' + self.args.dst[1:]
+                    if self.args.path:
+                        self.args.path = provider.internal + '/' + self.args.path
+                except AttributeError:
+                    pass #Ignore undefined attributes
+
+            # Otherwise try with the place IP
+            else:
                 ip = self._get_ip(place)
                 if not ip:
-                    return
-                resource = NetworkService(target, address=str(ip), username="root")
+                    raise NoResourceFoundError("NetworkService not found")
+                resource = NetworkService(target, address=str(ip), username='root',
+                                          name=str(ip) + "_net")
 
-            drv = self._get_driver_or_new(target, "SSHDriver", name=resource.name)
-            return drv
+        return self._get_driver_or_new(target, "SSHDriver", name=resource.name)
 
     def ssh(self):
         drv = self._get_ssh()
