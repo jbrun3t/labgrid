@@ -803,6 +803,7 @@ class ExporterSession(ApplicationSession):
         self.loop = self.config.extra["loop"]
         self.name = self.config.extra["name"]
         self.hostname = self.config.extra["hostname"]
+        self.proxy = self.config.extra['proxy']
         self.isolated = self.config.extra["isolated"]
         self.address = self._transport.transport.get_extra_info("sockname")[0]
         self.checkpoint = time.monotonic()
@@ -944,10 +945,10 @@ class ExporterSession(ApplicationSession):
         }
         proxy_req = self.isolated
         if issubclass(export_cls, ResourceExport):
-            group[resource_name] = export_cls(config, host=self.hostname, proxy=getfqdn(), proxy_required=proxy_req)
+            group[resource_name] = export_cls(config, host=self.hostname, proxy=self.proxy, proxy_required=proxy_req)
         else:
             config["params"]["extra"] = {
-                "proxy": getfqdn(),
+                "proxy": self.proxy,
                 "proxy_required": proxy_req,
             }
             group[resource_name] = export_cls(config)
@@ -987,6 +988,13 @@ def main():
         help="hostname (or IP) published for accessing resources (defaults to the system hostname)",
     )
     parser.add_argument(
+        '--proxy',
+        dest='proxy',
+        type=str,
+        default=None,
+        help='proxy (or IP) for accessing resources (defaults to the host fqdn)'
+    )
+    parser.add_argument(
         "--fqdn", action="store_true", default=False, help="Use fully qualified domain name as default for hostname"
     )
     parser.add_argument("-d", "--debug", action="store_true", default=False, help="enable debug mode")
@@ -1006,6 +1014,7 @@ def main():
     extra = {
         "name": args.name or gethostname(),
         "hostname": args.hostname or (getfqdn() if args.fqdn else gethostname()),
+        "proxy": args.proxy or getfqdn(),
         "resources": args.resources,
         "isolated": args.isolated,
     }
@@ -1017,6 +1026,8 @@ def main():
     print(f"crossbar realm: {crossbar_realm}")
     print(f"exporter name: {extra['name']}")
     print(f"exporter hostname: {extra['hostname']}")
+    if args.proxy:
+        print(f"exporter proxy: {extra['proxy']}")
     print(f"resource config file: {extra['resources']}")
 
     extra["loop"] = loop = asyncio.get_event_loop()
