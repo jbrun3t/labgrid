@@ -992,7 +992,7 @@ def main():
         dest='proxy',
         type=str,
         default=None,
-        help='proxy (or IP) for accessing resources (defaults to the host fqdn)'
+        help='proxy (or IP) for accessing resources (defaults to the hostname)'
     )
     parser.add_argument(
         "--fqdn", action="store_true", default=False, help="Use fully qualified domain name as default for hostname"
@@ -1014,7 +1014,7 @@ def main():
     extra = {
         "name": args.name or gethostname(),
         "hostname": args.hostname or (getfqdn() if args.fqdn else gethostname()),
-        "proxy": args.proxy or getfqdn(),
+        "proxy": args.proxy or extra["hostname"],
         "resources": args.resources,
         "isolated": args.isolated,
     }
