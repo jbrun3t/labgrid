@@ -4,6 +4,7 @@ import attr
 from ..factory import target_factory
 from ..step import step
 from .common import Driver
+from ..util.ssh import sshmanager
 from ..util.managedfile import ManagedFile
 
 
@@ -36,6 +37,18 @@ class TFTPProviderDriver(BaseProviderDriver):
     bindings = {
         "provider": {"TFTPProvider", "RemoteTFTPProvider"},
     }
+
+    @Driver.check_active
+    @step(args=['filename'], result=True)
+    def stage(self, filename):
+        conn = sshmanager.open(self.provider.host)
+        rpath = os.path.join(self.provider.internal, os.path.basename(filename))
+
+        assert rpath.startswith(self.provider.internal)
+        conn.run_check(f"mkdir -p {os.path.dirname(rpath)}")
+        conn.put_file(filename, rpath)
+
+        return self.provider.external + rpath[len(self.provider.internal):]
 
 
 @attr.s
