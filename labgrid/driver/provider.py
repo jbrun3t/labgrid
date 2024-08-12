@@ -18,6 +18,12 @@ class BaseProviderDriver(Driver):
             "external": self.provider.external,
         }
 
+    @Driver.check_bound
+    def local_ip(self):
+        conn = sshmanager.open(self.provider.host)
+        host = self.provider.host.split("@")[-1]
+        return conn.run_check(f"dig +short {host}")[0]
+
     @Driver.check_active
     @step(args=['filename'], result=True)
     def stage(self, filename):
