@@ -539,6 +539,20 @@ class Coordinator(labgrid_coordinator_pb2_grpc.CoordinatorServicer):
         return labgrid_coordinator_pb2.SetPlaceCommentResponse()
 
     @locked
+    async def SetPlaceDrivers(self, request, context):
+        placename = request.placename
+        drivers = request.drivers
+        try:
+            place = self.places[placename]
+        except KeyError:
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Place {placename} does not exist")
+        place.drivers = drivers
+        place.touch()
+        self._publish_place(place)
+        self.save_later()
+        return labgrid_coordinator_pb2.SetPlaceDriversResponse()
+
+    @locked
     async def AddPlaceMatch(self, request, context):
         placename = request.placename
         pattern = request.pattern

@@ -31,6 +31,8 @@ service Coordinator {
 
   rpc AllowPlace(AllowPlaceRequest) returns (AllowPlaceResponse) {}
 
+  rpc SetPlaceDrivers(SetPlaceDriversRequest) returns (SetPlaceDriversResponse) {}
+
   rpc CreateReservation(CreateReservationRequest) returns (CreateReservationResponse) {}
 
   rpc CancelReservation(CancelReservationRequest) returns (CancelReservationResponse) {}
@@ -166,7 +168,8 @@ message Place {
   repeated string allowed = 8;
   double created = 9;
   double changed = 10;
-  optional string reservation = 11;
+  string drivers = 11;
+  optional string reservation = 12;
 };
 
 message ResourceMatch {
@@ -258,6 +261,14 @@ message CreateReservationRequest {
 
 message CreateReservationResponse {
   Reservation reservation = 1;
+};
+
+message SetPlaceDriversRequest {
+  string placename = 1;
+  string drivers = 2;
+};
+
+message SetPlaceDriversResponse {
 };
 
 message Reservation {
