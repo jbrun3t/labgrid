@@ -572,6 +572,19 @@ class ClientSession:
         except grpc.aio.AioRpcError as e:
             raise ServerError(e.details())
 
+    async def set_drivers(self):
+        """Set the default drivers on a place"""
+        place = self.get_place()
+        drivers = " ".join(self.args.drivers)
+
+        request = labgrid_coordinator_pb2.SetPlaceDriversRequest(placename=place.name, drivers=drivers)
+
+        try:
+            await self.stub.SetPlaceDrivers(request)
+            await self.sync_with_coordinator()
+        except grpc.aio.AioRpcError as e:\
+            raise ServerError(e.details())
+
     async def set_tags(self):
         """Set the tags on a place"""
         place = self.get_place()
@@ -1772,6 +1785,10 @@ def main():
     subparser = subparsers.add_parser("set-comment", help="update the place comment")
     subparser.add_argument("comment", nargs="+")
     subparser.set_defaults(func=ClientSession.set_comment)
+
+    subparser = subparsers.add_parser("set-drivers", help="update the place default drivers")
+    subparser.add_argument("drivers", nargs="+")
+    subparser.set_defaults(func=ClientSession.set_drivers)
 
     subparser = subparsers.add_parser("set-tags", help="update the place tags")
     subparser.add_argument("tags", metavar="KEY=VALUE", nargs="+", help="use an empty value for deletion")
