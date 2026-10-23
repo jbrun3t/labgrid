@@ -453,6 +453,12 @@ def test_place_drivers_power(place_drivers_acquire, tmpdir, config):
         spawn.close()
         assert spawn.exitstatus == 0, spawn.before.strip()
 
+    with pexpect.spawn(f'python -m labgrid.remote.client {args} --no-place-drivers -p test power on') as spawn:
+        spawn.expect("target has no compatible resource available")
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 1, spawn.before.strip()
+
 def test_place_drivers_env(place_drivers_acquire, tmpdir, monkeypatch):
     from labgrid.environment import Environment
     from labgrid.exceptions import NoDriverFoundError

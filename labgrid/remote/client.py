@@ -951,7 +951,9 @@ class ClientSession:
                     pass
         else:
             config = {"resources": {"RemotePlace": {"name": place.name}}}
-            target = target_factory.make_target(place.name, config, env=self.env)
+            target = target_factory.make_target(
+                place.name, config, env=self.env, place_drivers=not self.args.no_place_drivers
+            )
         return target
 
     def _get_driver_or_new(self, target, cls, *, name=None, activate=True):
@@ -1998,6 +2000,11 @@ def get_parser(auto_doc_mode=False) -> "argparse.ArgumentParser | AutoProgramArg
     )
     parser.add_argument("-p", "--place", type=str, help="place name/alias (default: value from env variable LG_PLACE)")
     parser.add_argument(
+        "--no-place-drivers",
+        action="store_true",
+        help="do not create the drivers configured on the place",
+    )
+    parser.add_argument(
         "-s",
         "--state",
         type=str,
@@ -2481,7 +2488,7 @@ def main():
 
     env = None
     if args.config:
-        env = Environment(config_file=args.config)
+        env = Environment(config_file=args.config, place_drivers=not args.no_place_drivers)
 
     role = None
     if args.command != "reserve" and env and env.config.get_targets():
