@@ -13,6 +13,8 @@ class Environment:
         default="config.yaml", validator=attr.validators.instance_of(str)
     )
     interact = attr.ib(default=input, repr=False)
+    # create the drivers configured on places used by RemotePlace resources
+    place_drivers = attr.ib(default=True, validator=attr.validators.instance_of(bool))
 
     def __attrs_post_init__(self):
         self.targets = {}
@@ -46,7 +48,7 @@ class Environment:
             config = self.config.get_targets().get(role)
             if not config:
                 return None
-            target = target_factory.make_target(role, config, env=self)
+            target = target_factory.make_target(role, config, env=self, place_drivers=self.place_drivers)
             self.targets[role] = target
 
         return self.targets[role]

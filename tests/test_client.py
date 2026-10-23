@@ -455,6 +455,7 @@ def test_place_drivers_power(place_drivers_acquire, tmpdir, config):
 
 def test_place_drivers_env(place_drivers_acquire, tmpdir, monkeypatch):
     from labgrid.environment import Environment
+    from labgrid.exceptions import NoDriverFoundError
     from labgrid.resource.common import ResourceManager
 
     # don't reuse a coordinator session from a previous test
@@ -471,6 +472,10 @@ def test_place_drivers_env(place_drivers_acquire, tmpdir, monkeypatch):
     )
     t = Environment(str(p)).get_target("test1")
     assert t.get_driver("PowerProtocol", activate=False).__class__.__name__ == "ManualPowerDriver"
+
+    t = Environment(str(p), place_drivers=False).get_target("test1")
+    with pytest.raises(NoDriverFoundError):
+        t.get_driver("PowerProtocol", activate=False)
 
 def test_resource_conflict(place_acquire, tmpdir):
     with pexpect.spawn('python -m labgrid.remote.client -p test2 create') as spawn:
