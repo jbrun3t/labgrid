@@ -664,6 +664,29 @@ class ClientSession:
         except grpc.aio.AioRpcError as e:
             raise ServerError(e.details())
 
+    async def set_drivers(self):
+        """Set the drivers instantiated in every target using a place"""
+        place = self.get_idle_place()
+        drivers = ""
+        if self.args.file:
+            try:
+                with open(self.args.file) as f:
+                    drivers = f.read()
+            except OSError as e:
+                raise UserError(f"failed to read {self.args.file}: {e}") from e
+            try:
+                target_factory.load_place_drivers(drivers)
+            except InvalidConfigError as e:
+                raise UserError(f"invalid drivers for place {place.name}: {e}") from e
+
+        request = labgrid_coordinator_pb2.SetPlaceDriversRequest(placename=place.name, drivers=drivers)
+
+        try:
+            await self.stub.SetPlaceDrivers(request)
+            await self.sync_with_coordinator()
+        except grpc.aio.AioRpcError as e:
+            raise ServerError(e.details()) from e
+
     async def set_tags(self):
         """Set the tags on a place"""
         place = self.get_place()
@@ -2054,6 +2077,14 @@ def get_parser(auto_doc_mode=False) -> "argparse.ArgumentParser | AutoProgramArg
     subparser = subparsers.add_parser("set-comment", help="update the place comment")
     subparser.add_argument("comment", nargs="+")
     subparser.set_defaults(func=ClientSession.set_comment)
+
+    subparser = subparsers.add_parser(
+        "set-drivers", help="set the drivers instantiated in every target using the place (from a YAML file)"
+    )
+    group = subparser.add_mutually_exclusive_group(required=True)
+    group.add_argument("file", metavar="FILE", nargs="?", help="YAML file with a 'drivers' key")
+    group.add_argument("--clear", action="store_true", help="remove the drivers from the place")
+    subparser.set_defaults(func=ClientSession.set_drivers)
 
     subparser = subparsers.add_parser("set-tags", help="update the place tags")
     subparser.add_argument("tags", metavar="KEY=VALUE", nargs="+", help="use an empty value for deletion")

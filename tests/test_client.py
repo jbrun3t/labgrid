@@ -361,6 +361,56 @@ def test_remoteplace_target_without_env(request, place_acquire):
     remote_place = RemotePlace(t, name="test")
     assert remote_place.tags == {"board": "123board"}
 
+@pytest.fixture(scope='function')
+def place_drivers_file(tmpdir):
+    p = tmpdir.join("place-drivers.yaml")
+    p.write(
+        """
+    drivers:
+      - ManualPowerDriver: {}
+    """
+    )
+    return p
+
+def test_place_drivers(place, place_drivers_file, tmpdir):
+    with pexpect.spawn(f'python -m labgrid.remote.client -p test set-drivers {place_drivers_file}') as spawn:
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+    with pexpect.spawn('python -m labgrid.remote.client -p test show') as spawn:
+        spawn.expect(" drivers:")
+        spawn.expect("- ManualPowerDriver: {}")
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+    invalid = tmpdir.join("invalid.yaml")
+    invalid.write("resources: {}")
+    with pexpect.spawn(f'python -m labgrid.remote.client -p test set-drivers {invalid}') as spawn:
+        spawn.expect("must be a mapping with only a 'drivers' key")
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 1, spawn.before.strip()
+
+    with pexpect.spawn('python -m labgrid.remote.client -p test set-drivers --clear') as spawn:
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+    with pexpect.spawn('python -m labgrid.remote.client -p test show') as spawn:
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+        assert b"drivers:" not in spawn.before
+
+def test_place_drivers_acquired(place_acquire, place_drivers_file):
+    with pexpect.spawn(f'python -m labgrid.remote.client -p test set-drivers {place_drivers_file}') as spawn:
+        spawn.expect("requires the place to be idle")
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 1, spawn.before.strip()
+
 def test_resource_conflict(place_acquire, tmpdir):
     with pexpect.spawn('python -m labgrid.remote.client -p test2 create') as spawn:
         spawn.expect(pexpect.EOF)
