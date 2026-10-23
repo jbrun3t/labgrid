@@ -1,7 +1,10 @@
 import inspect
 
+from yaml import YAMLError
+
 from .exceptions import InvalidConfigError, RegistrationError
 from .util.dict import filter_dict
+from .util.yaml import load, resolve_templates
 
 
 class TargetFactory:
@@ -147,6 +150,30 @@ class TargetFactory:
             raise InvalidConfigError(
                 f"failed to create {driver} for target '{target}' using {args} ") from e
         return d
+
+    @staticmethod
+    def load_place_drivers(text):
+        """Parse the driver configuration of a place.
+
+        It describes how the place's resources are wired to the board (e.g. a GPIO switching
+        its supply) as YAML with only a 'drivers' key, using the environment configuration
+        syntax without template variables.
+
+        Returns the drivers in the format of _convert_to_named_list().
+        """
+        if not text:
+            return []
+        try:
+            data = load(text)
+        except YAMLError as e:
+            raise InvalidConfigError(f"invalid YAML: {e}") from e
+        if not isinstance(data, dict) or set(data) != {'drivers'}:
+            raise InvalidConfigError("must be a mapping with only a 'drivers' key")
+        try:
+            resolve_templates(data, {})
+        except (KeyError, ValueError) as e:
+            raise InvalidConfigError(f"cannot use template variables: {e}") from e
+        return TargetFactory._convert_to_named_list(data['drivers'])
 
     def make_target(self, name, config, *, env=None):
         from .target import Target

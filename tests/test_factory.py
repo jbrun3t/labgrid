@@ -252,3 +252,31 @@ def test_register_same_resource():
         target_factory.reg_driver(SameResource)
         target_factory.reg_driver(SameResource)
     assert "driver with name" in excinfo.value.msg
+
+
+def test_load_place_drivers():
+    assert target_factory.load_place_drivers("") == []
+    text = """
+drivers:
+  - ManualPowerDriver: {}
+  - DigitalOutputPowerDriver:
+      name: vbus
+      bindings: {output: vbus}
+"""
+    assert target_factory.load_place_drivers(text) == [
+        {'cls': 'ManualPowerDriver', 'name': None},
+        {'cls': 'DigitalOutputPowerDriver', 'name': 'vbus', 'bindings': {'output': 'vbus'}},
+    ]
+
+
+@pytest.mark.parametrize("text,error", [
+    ("foo: 1", "only a 'drivers' key"),
+    ("- ManualPowerDriver: {}", "only a 'drivers' key"),
+    ("drivers: {}\nfeatures: []", "only a 'drivers' key"),
+    ("drivers: [}", "invalid YAML"),
+    ("drivers:\n  - ManualPowerDriver: {name: !template '$LG_FOO'}", "cannot use template variables"),
+    ("drivers:\n", "should be dict or list"),
+])
+def test_load_place_drivers_error(text, error):
+    with pytest.raises(InvalidConfigError, match=error):
+        target_factory.load_place_drivers(text)
