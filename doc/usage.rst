@@ -179,6 +179,52 @@ allocated before returning.
 A reservation will time out after a short time, if it is neither refreshed nor
 used by locked places.
 
+.. _remote-place-drivers:
+
+Place Drivers
+~~~~~~~~~~~~~
+
+Places can carry a list of drivers describing how their resources are wired to
+the board, using the same syntax as the ``drivers`` key of a target in the
+:ref:`environment-configuration`.
+For example, for a board powered through an exported GPIO named ``vbus``:
+
+.. code-block:: yaml
+  :name: place-drivers.yaml
+
+  drivers:
+    - GpioDigitalOutputDriver:
+        name: vbus
+        bindings:
+          gpio: vbus
+    - DigitalOutputPowerDriver:
+        name: vbus
+        bindings:
+          output: vbus
+
+The binding names refer to the resource names of the place, as renamed by its
+named matches.
+The drivers are set on an idle place:
+
+.. code-block:: bash
+
+  $ labgrid-client -p board-1 set-drivers place-drivers.yaml
+  $ labgrid-client -p board-1 set-drivers --clear
+
+Every target using the place through a :any:`RemotePlace` resource, whether
+created by ``labgrid-client``, the pytest plugin or an :any:`Environment`,
+creates the place's drivers before its own drivers, so that these can bind to
+them.
+``labgrid-client`` commands such as ``power`` use them like any other driver.
+
+A driver of the target with the same class and name as a place driver replaces
+it entirely (arguments and bindings), at the place driver's position.
+Other drivers are added to the place drivers: if both provide the same
+protocol, the usual errors about multiple matching drivers are raised.
+The place drivers can be ignored with ``labgrid-client --no-place-drivers``,
+the pytest option ``--lg-no-place-drivers`` or
+``Environment(..., place_drivers=False)``.
+
 Library
 -------
 labgrid can be used directly as a Python library, without the infrastructure
@@ -476,6 +522,10 @@ Other labgrid-related pytest plugin options are:
   state already.
   The Strategy used must implement the ``force()`` method.
   See the shipped :any:`ShellStrategy` for an example.
+
+``--lg-no-place-drivers``
+  Do not create the drivers configured on remote places, see
+  :ref:`remote-place-drivers`.
 
 ``pytest --help`` shows these options in a separate *labgrid* section.
 

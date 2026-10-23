@@ -1811,6 +1811,8 @@ place.
 The example describes the remote place ``example-place``. It will connect to the
 labgrid remote coordinator, wait until the resources become available and expose
 them to the internal environment.
+The drivers configured on the place are added to the target, see
+:ref:`remote-place-drivers`.
 
 Arguments:
   - name (str): name or pattern of the remote place

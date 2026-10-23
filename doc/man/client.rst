@@ -111,6 +111,14 @@ given.
 If one of the resources should be used by default when no resource name is
 explicitly specified, it can be named ``default``.
 
+Place Drivers
+-------------
+A place can carry drivers describing how its resources are wired to the board,
+set from a YAML file with a ``drivers`` key using the environment configuration
+syntax (``set-drivers``). They are created in every target using the place,
+before the drivers of the configuration file, which replace place drivers of
+the same class and name. ``--no-place-drivers`` ignores them.
+
 Examples
 --------
 

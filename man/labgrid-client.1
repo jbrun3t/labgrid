@@ -40,8 +40,8 @@ This is the client to control a boards status and interface with it on remote ma
 .sp
 .EX
 usage: labgrid\-client [\-x ADDRESS] [\-\-tls] [\-\-cacert CACERT] [\-c CONFIG]
-                      [\-p PLACE] [\-s STATE] [\-i INITIAL_STATE] [\-d] [\-v]
-                      [\-P PROXY]
+                      [\-p PLACE] [\-\-no\-place\-drivers] [\-s STATE]
+                      [\-i INITIAL_STATE] [\-d] [\-v] [\-P PROXY]
                       COMMAND ...
 .EE
 .UNINDENT
@@ -70,6 +70,11 @@ env config file (default: value from env variable LG_ENV)
 .TP
 .B \-p <place>, \-\-place <place>
 place name/alias (default: value from env variable LG_PLACE)
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-no\-place\-drivers
+do not create the drivers configured on the place
 .UNINDENT
 .INDENT 0.0
 .TP
@@ -819,6 +824,27 @@ usage: labgrid\-client set\-comment comment [comment ...]
 .TP
 .B comment
 .UNINDENT
+.SS labgrid\-client set\-drivers
+.sp
+set the drivers instantiated in every target using the place (from a YAML file)
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+usage: labgrid\-client set\-drivers [\-\-clear] [FILE]
+.EE
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.TP
+.B file
+YAML file with a \(aqdrivers\(aq key
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-clear
+remove the drivers from the place
+.UNINDENT
 .SS labgrid\-client set\-tags
 .sp
 update the place tags
@@ -1248,6 +1274,13 @@ given.
 .sp
 If one of the resources should be used by default when no resource name is
 explicitly specified, it can be named \fBdefault\fP\&.
+.SH PLACE DRIVERS
+.sp
+A place can carry drivers describing how its resources are wired to the board,
+set from a YAML file with a \fBdrivers\fP key using the environment configuration
+syntax (\fBset\-drivers\fP). They are created in every target using the place,
+before the drivers of the configuration file, which replace place drivers of
+the same class and name. \fB\-\-no\-place\-drivers\fP ignores them.
 .SH EXAMPLES
 .sp
 To retrieve a list of places run:

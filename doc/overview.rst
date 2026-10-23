@@ -297,6 +297,17 @@ exporter1/hub1-port1/\*
   (such as a USB ROM-Loader interface, Android fastboot and a USB serial gadget
   in Linux).
 
+Exported resources carry no information on how they are wired to the board:
+a GPIO may switch the board's supply, drive a reset line or select a boot mode.
+This is described by the place's optional *drivers*, a list of
+:any:`Drivers <overview-drivers-protocols>` in the
+:ref:`environment configuration <environment-configuration>` syntax.
+Every :ref:`Target <usage-target>` using the place via a
+:ref:`RemotePlace <overview-remoteplace>` creates these drivers before its own,
+so environment configurations only need to describe the drivers specific to
+their use case (shell, strategy, …).
+See :ref:`remote-place-drivers` for details.
+
 To avoid conflicting access to the same resources, a place must be *acquired*
 before it is used and the coordinator also keeps track of which user on which
 client host has currently acquired the place.
