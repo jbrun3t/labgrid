@@ -83,10 +83,17 @@ class TargetFactory:
                         item = {'cls':  key}
                         if value is None:
                             raise InvalidConfigError("invalid list item, add empty dict for no arguments")  # pylint: disable=line-too-long
+                        if not isinstance(value, dict):
+                            raise InvalidConfigError(
+                                f"invalid arguments type {type(value)} for {key} (should be dict)")
                         item.update(value)
                 result.append(item)
         elif isinstance(data, dict):
             for cls, args in data.items():
+                if args is None:
+                    raise InvalidConfigError(f"invalid arguments for {cls}, add empty dict for no arguments")
+                if not isinstance(args, dict):
+                    raise InvalidConfigError(f"invalid arguments type {type(args)} for {cls} (should be dict)")
                 args = args.copy()
                 args.setdefault('cls', cls)
                 result.append(args)

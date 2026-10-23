@@ -180,6 +180,28 @@ def test_convert_error():
         target_factory._convert_to_named_list(data)
     assert "invalid list item, add empty dict for no arguments" in excinfo.value.msg
 
+    with pytest.raises(InvalidConfigError) as excinfo:
+        data = load("""
+        - one: "error"
+        """)
+        target_factory._convert_to_named_list(data)
+    assert "invalid arguments type <class 'str'> for one (should be dict)" in excinfo.value.msg
+
+    with pytest.raises(InvalidConfigError) as excinfo:
+        data = load("""
+        one:
+        two: {}
+        """)
+        target_factory._convert_to_named_list(data)
+    assert "invalid arguments for one, add empty dict for no arguments" in excinfo.value.msg
+
+    with pytest.raises(InvalidConfigError) as excinfo:
+        data = load("""
+        one: "error"
+        """)
+        target_factory._convert_to_named_list(data)
+    assert "invalid arguments type <class 'str'> for one (should be dict)" in excinfo.value.msg
+
 
 def test_resource_param_error():
     with pytest.raises(InvalidConfigError) as excinfo:
