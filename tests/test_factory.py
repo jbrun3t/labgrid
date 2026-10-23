@@ -280,3 +280,94 @@ drivers:
 def test_load_place_drivers_error(text, error):
     with pytest.raises(InvalidConfigError, match=error):
         target_factory.load_place_drivers(text)
+
+
+PLACE_DRIVERS = {
+    "board": """
+drivers:
+  - GpioDigitalOutputDriver:
+      name: vbus
+      bindings: {gpio: vbus}
+  - DigitalOutputPowerDriver:
+      name: vbus
+      delay: 2.0
+      bindings: {output: vbus}
+""",
+    "other": """
+drivers:
+  - DigitalOutputPowerDriver:
+      name: vbus
+""",
+    "invalid": "resources: {}",
+}
+
+
+@pytest.fixture
+def fake_places(monkeypatch):
+    """Expand RemotePlace resources from PLACE_DRIVERS instead of a coordinator."""
+    from labgrid.resource.common import ResourceManager
+    from labgrid.resource.remote import RemotePlaceManager
+
+    def on_resource_added(self, remote_place):
+        new = target_factory.make_resource(remote_place.target, "SysfsGPIO", "vbus", {"index": 1})
+        new.parent = remote_place
+        remote_place.avail = True
+        remote_place.drivers = PLACE_DRIVERS[remote_place.name]
+
+    monkeypatch.setattr(ResourceManager, "instances", {})
+    monkeypatch.setattr(RemotePlaceManager, "on_resource_added", on_resource_added)
+
+
+def place_config(drivers=None, place="board"):
+    config = {"resources": {"RemotePlace": {"name": place}}}
+    if drivers is not None:
+        config["drivers"] = drivers
+    return config
+
+
+def test_place_drivers(fake_places):
+    t = target_factory.make_target("dummy", place_config([{"ManualPowerDriver": {"name": "manual"}}]))
+    assert [(d.__class__.__name__, d.name) for d in t.drivers] == [
+        ("GpioDigitalOutputDriver", "vbus"),
+        ("DigitalOutputPowerDriver", "vbus"),
+        ("ManualPowerDriver", "manual"),
+    ]
+    power = t.get_driver("DigitalOutputPowerDriver", activate=False)
+    assert power.delay == 2.0
+    assert power.output is t.get_driver("GpioDigitalOutputDriver", activate=False)
+
+
+def test_place_drivers_replaced_in_position(fake_places):
+    config = place_config([
+        {"DigitalOutputPowerDriver": {"name": "vbus", "delay": 5.0, "bindings": {"output": "vbus"}}},
+        {"GpioDigitalOutputDriver": {"name": "vbus", "bindings": {"gpio": "vbus"}}},
+    ])
+    t = target_factory.make_target("dummy", config)
+    assert [(d.__class__.__name__, d.name) for d in t.drivers] == [
+        ("GpioDigitalOutputDriver", "vbus"),
+        ("DigitalOutputPowerDriver", "vbus"),
+    ]
+    assert t.get_driver("DigitalOutputPowerDriver", activate=False).delay == 5.0
+
+
+def test_place_drivers_replaced_whole(fake_places):
+    # the place's delay is not kept
+    t = target_factory.make_target("dummy", place_config([{"DigitalOutputPowerDriver": {"name": "vbus"}}]))
+    assert t.get_driver("DigitalOutputPowerDriver", activate=False).delay == 1.0
+
+
+def test_place_drivers_disabled(fake_places):
+    t = target_factory.make_target("dummy", place_config([{"ManualPowerDriver": {}}]), place_drivers=False)
+    assert [d.__class__.__name__ for d in t.drivers] == ["ManualPowerDriver"]
+
+
+def test_place_drivers_duplicate(fake_places):
+    config = {"resources": [{"RemotePlace": {"name": "board"}}, {"RemotePlace": {"name": "other"}}]}
+    with pytest.raises(InvalidConfigError, match="configured more than once"):
+        target_factory.make_target("dummy", config)
+
+
+def test_place_drivers_invalid(fake_places):
+    with pytest.raises(InvalidConfigError, match="invalid drivers for place invalid"):
+        target_factory.make_target("dummy", place_config(place="invalid"))
+    target_factory.make_target("dummy", place_config(place="invalid"), place_drivers=False)

@@ -411,6 +411,67 @@ def test_place_drivers_acquired(place_acquire, place_drivers_file):
         spawn.close()
         assert spawn.exitstatus == 1, spawn.before.strip()
 
+@pytest.fixture(scope='function')
+def place_drivers_acquire(place, exporter, place_drivers_file):
+    with pexpect.spawn(f'python -m labgrid.remote.client -p test set-drivers {place_drivers_file}') as spawn:
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+    with pexpect.spawn('python -m labgrid.remote.client -p test add-match "*/Testport/*"') as spawn:
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+    with pexpect.spawn('python -m labgrid.remote.client -p test acquire') as spawn:
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+@pytest.mark.parametrize("config", [False, True])
+def test_place_drivers_power(place_drivers_acquire, tmpdir, config):
+    args = ""
+    target = "test"
+    if config:
+        p = tmpdir.join("config.yaml")
+        p.write(
+            """
+        targets:
+          test1:
+            resources:
+              RemotePlace:
+                name: test
+        """
+        )
+        args = f"-c {p}"
+        target = "test1"
+
+    with pexpect.spawn(f'python -m labgrid.remote.client {args} -p test power on') as spawn:
+        spawn.expect(f"Turn the target {target} ON and press enter")
+        spawn.sendline()
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
+def test_place_drivers_env(place_drivers_acquire, tmpdir, monkeypatch):
+    from labgrid.environment import Environment
+    from labgrid.resource.common import ResourceManager
+
+    # don't reuse a coordinator session from a previous test
+    monkeypatch.setattr(ResourceManager, "instances", {})
+    p = tmpdir.join("config.yaml")
+    p.write(
+        """
+    targets:
+      test1:
+        resources:
+          RemotePlace:
+            name: test
+    """
+    )
+    t = Environment(str(p)).get_target("test1")
+    assert t.get_driver("PowerProtocol", activate=False).__class__.__name__ == "ManualPowerDriver"
+
 def test_resource_conflict(place_acquire, tmpdir):
     with pexpect.spawn('python -m labgrid.remote.client -p test2 create') as spawn:
         spawn.expect(pexpect.EOF)

@@ -175,7 +175,45 @@ class TargetFactory:
             raise InvalidConfigError(f"cannot use template variables: {e}") from e
         return TargetFactory._convert_to_named_list(data['drivers'])
 
-    def make_target(self, name, config, *, env=None):
+    @staticmethod
+    def _merge_place_drivers(target, drivers):
+        """Prepend the drivers configured on the target's places to the given driver list.
+
+        A given driver with the same class and name as a place driver replaces it at the place
+        driver's position, so that place drivers binding to it are still created after it.
+        """
+        from .resource.remote import RemotePlace
+
+        merged = []
+        index = {}
+        for resource in target.resources:
+            if not isinstance(resource, RemotePlace):
+                continue
+            try:
+                place_drivers = TargetFactory.load_place_drivers(resource.drivers)
+            except InvalidConfigError as e:
+                raise InvalidConfigError(f"invalid drivers for place {resource.name}: {e}") from e
+            for item in place_drivers:
+                key = (item['cls'], item['name'])
+                if key in index:
+                    raise InvalidConfigError(
+                        f"driver {item['cls']} named {item['name']} configured more than once by places of {target}"
+                    )
+                index[key] = len(merged)
+                merged.append(item)
+        remaining = []
+        for item in drivers:
+            position = index.pop((item['cls'], item['name']), None)
+            if position is None:
+                remaining.append(item)
+            else:
+                merged[position] = item
+        return merged + remaining
+
+    def make_target(self, name, config, *, env=None, place_drivers=True):
+        """Unless place_drivers is False, the drivers configured on the places of the target's
+        RemotePlace resources are created as well, see _merge_place_drivers().
+        """
         from .target import Target
 
         target = Target(name, env=env)
@@ -184,7 +222,10 @@ class TargetFactory:
             name = item.pop('name', None)
             args = item # remaining args
             self.make_resource(target, resource, name, args)
-        for item in TargetFactory._convert_to_named_list(config.get('drivers', {})):
+        drivers = TargetFactory._convert_to_named_list(config.get('drivers', {}))
+        if place_drivers:
+            drivers = TargetFactory._merge_place_drivers(target, drivers)
+        for item in drivers:
             driver = item.pop('cls')
             name = item.pop('name', None)
             bindings = item.pop('bindings', {})

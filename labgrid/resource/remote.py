@@ -85,6 +85,7 @@ class RemotePlaceManager(ResourceManager):
         self.logger.debug("expanded remote resources for place %s: %s", remote_place.name, expanded)
         remote_place.avail = True
         remote_place.tags = copy.deepcopy(place.tags)
+        remote_place.drivers = place.drivers
 
     def poll(self):
         import asyncio
@@ -121,6 +122,7 @@ class RemotePlace(ManagedResource):
     def __attrs_post_init__(self):
         self.timeout = 10.0
         self.tags = {}
+        self.drivers = ""
         super().__attrs_post_init__()
 
 @attr.s(eq=False)
