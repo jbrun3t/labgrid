@@ -7,6 +7,7 @@ import random
 import re
 import string
 import logging
+import textwrap
 from datetime import datetime
 from fnmatch import fnmatchcase
 from typing import Optional
@@ -288,6 +289,7 @@ class Place:
     created = attr.ib(default=attr.Factory(time.time))
     changed = attr.ib(default=attr.Factory(time.time))
     reservation = attr.ib(default=None)
+    drivers = attr.ib(default="")
 
     def __attrs_post_init__(self):
         self.logger = logging.getLogger(f"{self}")
@@ -312,6 +314,7 @@ class Place:
             "created": self.created,
             "changed": self.changed,
             "reservation": self.reservation,
+            "drivers": self.drivers,
         }
 
     def update_from_pb2(self, place_pb2):
@@ -359,6 +362,9 @@ class Place:
         print(indent + f"changed: {datetime.fromtimestamp(self.changed)}")
         if self.reservation:
             print(indent + f"reservation: {self.reservation}")
+        if self.drivers:
+            print(indent + "drivers:")
+            print(textwrap.indent(self.drivers.rstrip("\n"), indent + "  "))
 
     def getmatch(self, resource_path):
         """Return the ResourceMatch object for the given resource path or None if not found.
@@ -411,6 +417,7 @@ class Place:
             place.created = self.created
             if self.reservation:
                 place.reservation = self.reservation
+            place.drivers = self.drivers
             for key, value in self.tags.items():
                 place.tags[key] = value
             return place
@@ -438,6 +445,7 @@ class Place:
             created=pb2.created,
             changed=pb2.changed,
             reservation=pb2.reservation if pb2.HasField("reservation") else None,
+            drivers=pb2.drivers,
         )
 
     def __str__(self):

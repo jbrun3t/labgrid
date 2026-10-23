@@ -255,6 +255,35 @@ def test_coordinator_place_set_comment(coordinator, coordinator_place):
     assert res
 
 
+def test_coordinator_place_set_drivers(coordinator, coordinator_place):
+    stub = coordinator_place
+    drivers = "drivers:\n  - ManualPowerDriver: {}\n"
+    res = stub.SetPlaceDrivers(labgrid_coordinator_pb2.SetPlaceDriversRequest(placename="test", drivers=drivers))
+    assert res
+    places = stub.GetPlaces(labgrid_coordinator_pb2.GetPlacesRequest()).places
+    assert [p.drivers for p in places if p.name == "test"] == [drivers]
+
+
+def test_coordinator_place_set_drivers_acquired(coordinator, coordinator_place):
+    stub = coordinator_place
+    stub.AcquirePlace(labgrid_coordinator_pb2.AcquirePlaceRequest(placename="test"))
+    with pytest.raises(grpc.RpcError) as excinfo:
+        stub.SetPlaceDrivers(labgrid_coordinator_pb2.SetPlaceDriversRequest(placename="test", drivers=""))
+    assert excinfo.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+
+
+def test_coordinator_place_drivers_persist(tmp_path, monkeypatch):
+    import yaml
+
+    monkeypatch.chdir(tmp_path)
+    drivers = "drivers:\n  - ManualPowerDriver: {}\n"
+    (tmp_path / "places.yaml").write_text(yaml.dump({"test": Place("test", drivers=drivers).asdict()}))
+
+    coordinator = Coordinator.__new__(Coordinator)
+    coordinator.load()
+    assert coordinator.places["test"].drivers == drivers
+
+
 def test_coordinator_place_add_match(coordinator, coordinator_place):
     stub = coordinator_place
     res = stub.AddPlaceMatch(

@@ -25,6 +25,16 @@ def test_place_from_pb2():
     assert place_new.changed == place_start.changed
     assert place_new.reservation == place_start.reservation
 
+def test_from_pb2_drivers():
+    drivers = "drivers:\n  - ManualPowerDriver: {}\n"
+    place_start = Place(name="testing-place", drivers=drivers)
+    place_new = Place.from_pb2(place_start.as_pb2())
+    assert place_new.drivers == drivers
+
+    place_update = Place(name="testing-place")
+    place_update.update_from_pb2(place_start.as_pb2())
+    assert place_update.drivers == drivers
+
 def test_from_pb2_tags():
     tags = {"some": "test", "more": "values"}
     place_start = Place(name="testing-place", tags=tags)

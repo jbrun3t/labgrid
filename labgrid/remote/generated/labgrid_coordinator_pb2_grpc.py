@@ -59,6 +59,11 @@ class CoordinatorStub(object):
                 request_serializer=labgrid__coordinator__pb2.SetPlaceCommentRequest.SerializeToString,
                 response_deserializer=labgrid__coordinator__pb2.SetPlaceCommentResponse.FromString,
                 )
+        self.SetPlaceDrivers = channel.unary_unary(
+                '/labgrid.Coordinator/SetPlaceDrivers',
+                request_serializer=labgrid__coordinator__pb2.SetPlaceDriversRequest.SerializeToString,
+                response_deserializer=labgrid__coordinator__pb2.SetPlaceDriversResponse.FromString,
+                )
         self.AddPlaceMatch = channel.unary_unary(
                 '/labgrid.Coordinator/AddPlaceMatch',
                 request_serializer=labgrid__coordinator__pb2.AddPlaceMatchRequest.SerializeToString,
@@ -158,6 +163,12 @@ class CoordinatorServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def SetPlaceComment(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SetPlaceDrivers(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -264,6 +275,11 @@ def add_CoordinatorServicer_to_server(servicer, server):
                     servicer.SetPlaceComment,
                     request_deserializer=labgrid__coordinator__pb2.SetPlaceCommentRequest.FromString,
                     response_serializer=labgrid__coordinator__pb2.SetPlaceCommentResponse.SerializeToString,
+            ),
+            'SetPlaceDrivers': grpc.unary_unary_rpc_method_handler(
+                    servicer.SetPlaceDrivers,
+                    request_deserializer=labgrid__coordinator__pb2.SetPlaceDriversRequest.FromString,
+                    response_serializer=labgrid__coordinator__pb2.SetPlaceDriversResponse.SerializeToString,
             ),
             'AddPlaceMatch': grpc.unary_unary_rpc_method_handler(
                     servicer.AddPlaceMatch,
@@ -470,6 +486,23 @@ class Coordinator(object):
         return grpc.experimental.unary_unary(request, target, '/labgrid.Coordinator/SetPlaceComment',
             labgrid__coordinator__pb2.SetPlaceCommentRequest.SerializeToString,
             labgrid__coordinator__pb2.SetPlaceCommentResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SetPlaceDrivers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/labgrid.Coordinator/SetPlaceDrivers',
+            labgrid__coordinator__pb2.SetPlaceDriversRequest.SerializeToString,
+            labgrid__coordinator__pb2.SetPlaceDriversResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

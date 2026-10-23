@@ -21,6 +21,8 @@ service Coordinator {
 
   rpc SetPlaceComment(SetPlaceCommentRequest) returns (SetPlaceCommentResponse) {}
 
+  rpc SetPlaceDrivers(SetPlaceDriversRequest) returns (SetPlaceDriversResponse) {}
+
   rpc AddPlaceMatch(AddPlaceMatchRequest) returns (AddPlaceMatchResponse) {}
 
   rpc DeletePlaceMatch(DeletePlaceMatchRequest) returns (DeletePlaceMatchResponse) {}
@@ -169,6 +171,7 @@ message Place {
   double created = 9;
   double changed = 10;
   optional string reservation = 11;
+  string drivers = 12;
 };
 
 message ResourceMatch {
@@ -209,6 +212,14 @@ message SetPlaceCommentRequest {
 };
 
 message SetPlaceCommentResponse {
+};
+
+message SetPlaceDriversRequest {
+  string placename = 1;
+  string drivers = 2;
+};
+
+message SetPlaceDriversResponse {
 };
 
 message AddPlaceMatchRequest {
