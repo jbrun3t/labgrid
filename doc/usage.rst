@@ -219,6 +219,23 @@ them.
 
 A driver of the target with the same class and name as a place driver replaces
 it entirely (arguments and bindings), at the place driver's position.
+To only override some arguments or bindings, tag the driver with ``!merge``:
+its arguments override those of the place driver one by one, and its bindings
+are merged by binding name.
+The place must provide the driver, otherwise an error is raised.
+
+.. code-block:: yaml
+
+  targets:
+    main:
+      resources:
+        RemotePlace:
+          name: board-1
+      drivers:
+        - DigitalOutputPowerDriver: !merge
+            name: vbus
+            delay: 5.0
+
 Other drivers are added to the place drivers: if both provide the same
 protocol, the usual errors about multiple matching drivers are raised.
 The place drivers can be ignored with ``labgrid-client --no-place-drivers``,
