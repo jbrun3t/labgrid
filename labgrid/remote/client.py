@@ -44,10 +44,10 @@ from .common import (
     queue_as_aiter,
     get_client_credentials,
 )
-from .. import Environment, Target, target_factory
+from .. import Environment, target_factory
 from ..exceptions import NoDriverFoundError, NoResourceFoundError, InvalidConfigError
 from .generated import labgrid_coordinator_pb2, labgrid_coordinator_pb2_grpc
-from ..resource.remote import RemotePlaceManager, RemotePlace
+from ..resource.remote import RemotePlaceManager
 from ..util import diff_dict, flat_dict, dump, atomic_replace, labgrid_version, Timeout
 from ..util.proxy import proxymanager
 from ..util.ssh import sshmanager
@@ -950,8 +950,8 @@ class ClientSession:
                 except NoDriverFoundError:
                     pass
         else:
-            target = Target(place.name, env=self.env)
-            RemotePlace(target, name=place.name)
+            config = {"resources": {"RemotePlace": {"name": place.name}}}
+            target = target_factory.make_target(place.name, config, env=self.env)
         return target
 
     def _get_driver_or_new(self, target, cls, *, name=None, activate=True):
