@@ -571,62 +571,6 @@ def test_ftdigpio_export_params():
     }
 
 
-def test_ftdigpio_client_digital_io(target, mocker, monkeypatch):
-    monkeypatch.setattr(NetworkFTDIGPIO, "manager_cls", ResourceManager)
-    driver = types.SimpleNamespace(set=mocker.MagicMock())
-    session = object.__new__(ClientSession)
-    session.args = types.SimpleNamespace(action="high", name=None)
-    session.get_acquired_place = lambda: types.SimpleNamespace(name="test")
-    session._get_target = lambda place: target
-    session._get_driver_or_new = mocker.MagicMock(return_value=driver)
-
-    NetworkFTDIGPIO(
-        target,
-        name=None,
-        host="exporter",
-        busnum=1,
-        devnum=39,
-        path="1-12.4.2",
-        vendor_id=0x0403,
-        model_id=0x6014,
-        index=2,
-        interface=1,
-    )
-
-    session.digital_io()
-
-    session._get_driver_or_new.assert_called_once_with(target, "FTDIGPIODriver", name=None)
-    driver.set.assert_called_once_with(True)
-
-
-def test_ftdigpio_client_digital_io_get(target, mocker, monkeypatch, capsys):
-    monkeypatch.setattr(NetworkFTDIGPIO, "manager_cls", ResourceManager)
-    driver = types.SimpleNamespace(get=mocker.MagicMock(return_value=True))
-    session = object.__new__(ClientSession)
-    session.args = types.SimpleNamespace(action="get", name=None)
-    session.get_acquired_place = lambda: types.SimpleNamespace(name="test")
-    session._get_target = lambda place: target
-    session._get_driver_or_new = mocker.MagicMock(return_value=driver)
-
-    NetworkFTDIGPIO(
-        target,
-        name=None,
-        host="exporter",
-        busnum=1,
-        devnum=39,
-        path="1-12.4.2",
-        vendor_id=0x0403,
-        model_id=0x6014,
-        index=2,
-        interface=1,
-    )
-
-    session.digital_io()
-
-    session._get_driver_or_new.assert_called_once_with(target, "FTDIGPIODriver", name=None)
-    assert "digital IO for place test is high" in capsys.readouterr().out
-
-
 def test_ftdigpio_client_digital_io_named(target, mocker, monkeypatch):
     monkeypatch.setattr(NetworkFTDIGPIO, "manager_cls", ResourceManager)
     proxy = mocker.MagicMock()
@@ -645,6 +589,7 @@ def test_ftdigpio_client_digital_io_named(target, mocker, monkeypatch):
         interface=1,
     )
     gpio.avail = True
+    driver = FTDIGPIODriver(target, name="d0")
 
     session = object.__new__(ClientSession)
     session.args = types.SimpleNamespace(action="high", name="d0")
@@ -653,7 +598,6 @@ def test_ftdigpio_client_digital_io_named(target, mocker, monkeypatch):
 
     session.digital_io()
 
-    driver = target.get_driver(FTDIGPIODriver, name="d0")
     assert driver.gpio is gpio
     proxy.setup.assert_called_once_with(0x0403, 0x6014, 1, 39, 1, 0, True)
     proxy.set.assert_called_once_with(0x0403, 0x6014, 1, 39, 1, 0, True)

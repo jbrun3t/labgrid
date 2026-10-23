@@ -241,7 +241,7 @@ start a bootloader
 .INDENT 3.5
 .sp
 .EX
-usage: labgrid\-client bootstrap [\-w WAIT] [\-\-name NAME] filename ...
+usage: labgrid\-client bootstrap [\-\-name NAME] filename
 .EE
 .UNINDENT
 .UNINDENT
@@ -252,17 +252,8 @@ filename to boot on the target
 .UNINDENT
 .INDENT 0.0
 .TP
-.B arg
-extra bootstrap arguments
-.UNINDENT
-.INDENT 0.0
-.TP
-.B \-w <wait>, \-\-wait <wait>
-.UNINDENT
-.INDENT 0.0
-.TP
 .B \-\-name <name>, \-n <name>
-optional resource name
+optional driver name
 .UNINDENT
 .SS labgrid\-client cancel\-reservation
 .sp
@@ -528,7 +519,7 @@ action
 .INDENT 0.0
 .TP
 .B name
-optional resource name
+optional driver name
 .UNINDENT
 .SS labgrid\-client monitor
 .sp
@@ -626,7 +617,7 @@ wait time in seconds between off and on during cycle
 .INDENT 0.0
 .TP
 .B \-\-name <name>, \-n <name>
-optional resource name
+optional driver name
 .UNINDENT
 .SS labgrid\-client release\-from
 .sp
@@ -807,7 +798,7 @@ usage: labgrid\-client sd\-mux [\-\-name NAME] {dut,host,off,client,get}
 .INDENT 0.0
 .TP
 .B \-\-name <name>, \-n <name>
-optional resource name
+optional driver name
 .UNINDENT
 .SS labgrid\-client set\-comment
 .sp
@@ -1063,7 +1054,7 @@ configure v4l controls (such as \(aqfocus_auto=0,focus_absolute=40\(aq)
 .INDENT 0.0
 .TP
 .B \-\-name <name>, \-n <name>
-optional resource name
+optional driver name
 .UNINDENT
 .SS labgrid\-client wait
 .sp

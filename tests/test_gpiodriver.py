@@ -75,18 +75,28 @@ def test_client_io_get_uses_configured_gpio_input_driver(target, monkeypatch, ca
     assert proxy.calls == [(13, False, 'in')]
 
 
-def test_client_io_get_keeps_network_sysfs_output_fallback(target, monkeypatch, mocker):
+def test_client_io_get_uses_configured_gpio_output_driver(target, monkeypatch, capsys):
+    proxy = types.SimpleNamespace(calls=[])
+
+    def proxy_get(index, invert):
+        proxy.calls.append((index, invert))
+        return False
+
+    proxy.get = proxy_get
+
+    monkeypatch.setattr(gpiodriver, "AgentWrapper", lambda host: FakeWrapper(host, proxy))
     monkeypatch.setattr(NetworkSysfsGPIO, "manager_cls", ResourceManager)
-    driver = types.SimpleNamespace(get=mocker.MagicMock(return_value=False))
+
+    gpio = NetworkSysfsGPIO(target, name="gpio", host="exporter", index=13, invert=False)
+    gpio.avail = True
+    GpioDigitalOutputDriver(target, name="gpio")
+
     session = object.__new__(ClientSession)
     session.args = types.SimpleNamespace(action="get", name="gpio")
     session.get_acquired_place = lambda: types.SimpleNamespace(name="test")
     session._get_target = lambda place: target
-    session._get_driver_or_new = mocker.MagicMock(return_value=driver)
-
-    NetworkSysfsGPIO(target, name="gpio", host="exporter", index=13, invert=False)
 
     session.digital_io()
 
-    session._get_driver_or_new.assert_called_once_with(target, "GpioDigitalOutputDriver", name="gpio")
-    driver.get.assert_called_once_with()
+    assert "digital IO gpio for place test is low" in capsys.readouterr().out
+    assert proxy.calls == [(13, False)]

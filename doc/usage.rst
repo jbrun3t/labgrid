@@ -216,6 +216,9 @@ created by ``labgrid-client``, the pytest plugin or an :any:`Environment`,
 creates the place's drivers before its own drivers, so that these can bind to
 them.
 ``labgrid-client`` commands such as ``power`` use them like any other driver.
+The ``power``, ``io``, ``bootstrap``, ``sd-mux`` and ``video`` commands only use
+drivers configured on the place or in the environment configuration, their
+``--name`` option selects a driver by name.
 
 A driver of the target with the same class and name as a place driver replaces
 it entirely (arguments and bindings), at the place driver's position.
