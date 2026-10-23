@@ -371,3 +371,59 @@ def test_place_drivers_invalid(fake_places):
     with pytest.raises(InvalidConfigError, match="invalid drivers for place invalid"):
         target_factory.make_target("dummy", place_config(place="invalid"))
     target_factory.make_target("dummy", place_config(place="invalid"), place_drivers=False)
+
+
+def test_convert_merge():
+    from labgrid.util.yaml import MergeMapping
+
+    for data in ["- Foo: !merge {name: x}", "Foo: !merge {name: x}", "- !merge {cls: Foo, name: x}"]:
+        [item] = target_factory._convert_to_named_list(load(data))
+        assert isinstance(item, MergeMapping)
+        assert item == {'cls': 'Foo', 'name': 'x'}
+
+
+def test_merge_drivers():
+    place = [
+        {'cls': 'A', 'name': 'a', 'delay': 1.0, 'timeout': 2.0, 'bindings': {'x': 'p', 'y': 'p'}},
+        {'cls': 'B', 'name': None},
+    ]
+    drivers = target_factory._convert_to_named_list(load("""
+    - A: !merge
+        name: a
+        delay: 5.0
+        bindings: {y: c}
+    - C: {}
+    """))
+    assert target_factory._merge_drivers(None, place, drivers) == [
+        {'cls': 'A', 'name': 'a', 'delay': 5.0, 'timeout': 2.0, 'bindings': {'x': 'p', 'y': 'c'}},
+        {'cls': 'B', 'name': None},
+        {'cls': 'C', 'name': None},
+    ]
+
+
+def test_place_drivers_merged(fake_places):
+    config = place_config(load("""
+    - DigitalOutputPowerDriver: !merge
+        name: vbus
+        delay: 5.0
+    """))
+    t = target_factory.make_target("dummy", config)
+    assert [(d.__class__.__name__, d.name) for d in t.drivers] == [
+        ("GpioDigitalOutputDriver", "vbus"),
+        ("DigitalOutputPowerDriver", "vbus"),
+    ]
+    assert t.get_driver("DigitalOutputPowerDriver", activate=False).delay == 5.0
+
+
+@pytest.mark.parametrize("place_drivers", [True, False])
+def test_place_drivers_merged_missing(fake_places, place_drivers):
+    config = place_config(load("""
+    - ManualPowerDriver: !merge {}
+    """))
+    with pytest.raises(InvalidConfigError, match="no place driver ManualPowerDriver named None to merge into"):
+        target_factory.make_target("dummy", config, place_drivers=place_drivers)
+
+
+def test_load_place_drivers_merge():
+    with pytest.raises(InvalidConfigError, match="cannot use !merge"):
+        target_factory.load_place_drivers("drivers:\n  - ManualPowerDriver: !merge {}")

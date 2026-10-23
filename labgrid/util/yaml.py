@@ -68,6 +68,18 @@ def _template_constructor(loader, node):
 Loader.add_constructor("!template", _template_constructor)
 
 
+class MergeMapping(OrderedDict):
+    """Mapping tagged with !merge, see TargetFactory._merge_drivers()."""
+
+
+def _merge_constructor(loader, node):
+    _check_duplicate_dict_keys(loader, node)
+    return MergeMapping(loader.construct_pairs(node))
+
+
+Loader.add_constructor("!merge", _merge_constructor)
+
+
 def load(stream):
     """
     Wrapper for yaml load function with custom loader.

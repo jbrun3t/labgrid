@@ -4,7 +4,7 @@ from yaml import YAMLError
 
 from .exceptions import InvalidConfigError, RegistrationError
 from .util.dict import filter_dict
-from .util.yaml import load, resolve_templates
+from .util.yaml import MergeMapping, load, resolve_templates
 
 
 class TargetFactory:
@@ -83,7 +83,7 @@ class TargetFactory:
                     if key == 'cls':
                         item = item.copy()
                     else:
-                        item = {'cls':  key}
+                        item = MergeMapping(cls=key) if isinstance(value, MergeMapping) else {'cls':  key}
                         if value is None:
                             raise InvalidConfigError("invalid list item, add empty dict for no arguments")  # pylint: disable=line-too-long
                         if not isinstance(value, dict):
@@ -173,38 +173,57 @@ class TargetFactory:
             resolve_templates(data, {})
         except (KeyError, ValueError) as e:
             raise InvalidConfigError(f"cannot use template variables: {e}") from e
-        return TargetFactory._convert_to_named_list(data['drivers'])
+        drivers = TargetFactory._convert_to_named_list(data['drivers'])
+        if any(isinstance(item, MergeMapping) for item in drivers):
+            raise InvalidConfigError("cannot use !merge")
+        return drivers
 
     @staticmethod
-    def _merge_place_drivers(target, drivers):
-        """Prepend the drivers configured on the target's places to the given driver list.
-
-        A given driver with the same class and name as a place driver replaces it at the place
-        driver's position, so that place drivers binding to it are still created after it.
-        """
+    def _get_place_drivers(target):
+        """Return the drivers configured on the places of the target's RemotePlace resources."""
         from .resource.remote import RemotePlace
 
-        merged = []
-        index = {}
+        drivers = []
         for resource in target.resources:
             if not isinstance(resource, RemotePlace):
                 continue
             try:
-                place_drivers = TargetFactory.load_place_drivers(resource.drivers)
+                drivers.extend(TargetFactory.load_place_drivers(resource.drivers))
             except InvalidConfigError as e:
                 raise InvalidConfigError(f"invalid drivers for place {resource.name}: {e}") from e
-            for item in place_drivers:
-                key = (item['cls'], item['name'])
-                if key in index:
-                    raise InvalidConfigError(
-                        f"driver {item['cls']} named {item['name']} configured more than once by places of {target}"
-                    )
-                index[key] = len(merged)
-                merged.append(item)
+        return drivers
+
+    @staticmethod
+    def _merge_drivers(target, place_drivers, drivers):
+        """Prepend the place drivers to the given driver list.
+
+        A given driver with the same class and name as a place driver replaces it at the place
+        driver's position, so that place drivers binding to it are still created after it.
+        If the given driver is tagged with !merge, its arguments and bindings override those of
+        the place driver instead, which must exist.
+        """
+        merged = []
+        index = {}
+        for item in place_drivers:
+            key = (item['cls'], item['name'])
+            if key in index:
+                raise InvalidConfigError(
+                    f"driver {item['cls']} named {item['name']} configured more than once by places of {target}"
+                )
+            index[key] = len(merged)
+            merged.append(item)
         remaining = []
         for item in drivers:
             position = index.pop((item['cls'], item['name']), None)
-            if position is None:
+            if isinstance(item, MergeMapping):
+                if position is None:
+                    raise InvalidConfigError(
+                        f"no place driver {item['cls']} named {item['name']} to merge into in {target}"
+                    )
+                place_item = merged[position]
+                bindings = {**place_item.get('bindings', {}), **item.get('bindings', {})}
+                merged[position] = {**place_item, **item, 'bindings': bindings}
+            elif position is None:
                 remaining.append(item)
             else:
                 merged[position] = item
@@ -212,7 +231,7 @@ class TargetFactory:
 
     def make_target(self, name, config, *, env=None, place_drivers=True):
         """Unless place_drivers is False, the drivers configured on the places of the target's
-        RemotePlace resources are created as well, see _merge_place_drivers().
+        RemotePlace resources are created as well, see _merge_drivers().
         """
         from .target import Target
 
@@ -223,8 +242,8 @@ class TargetFactory:
             args = item # remaining args
             self.make_resource(target, resource, name, args)
         drivers = TargetFactory._convert_to_named_list(config.get('drivers', {}))
-        if place_drivers:
-            drivers = TargetFactory._merge_place_drivers(target, drivers)
+        place = TargetFactory._get_place_drivers(target) if place_drivers else []
+        drivers = TargetFactory._merge_drivers(target, place, drivers)
         for item in drivers:
             driver = item.pop('cls')
             name = item.pop('name', None)
