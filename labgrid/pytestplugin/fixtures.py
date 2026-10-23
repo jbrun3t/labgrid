@@ -44,6 +44,11 @@ def pytest_addoption(parser):
         dest='lg_initial_state',
         metavar='STATE_NAME',
         help='set the strategy\'s initial state (during development)')
+    group.addoption(
+        '--lg-no-place-drivers',
+        action='store_true',
+        dest='lg_no_place_drivers',
+        help='do not create the drivers configured on remote places')
 
     # We would like to use a default value hook for log_format in the logging plugin,
     # similar to the approach below:

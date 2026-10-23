@@ -87,7 +87,7 @@ def pytest_configure(config):
     if lg_env is None:
         lg_env = os.environ.get('LG_ENV')
     if lg_env is not None:
-        env = Environment(config_file=lg_env)
+        env = Environment(config_file=lg_env, place_drivers=not config.option.lg_no_place_drivers)
         if lg_coordinator is not None:
             env.config.set_option('coordinator_address', lg_coordinator)
     config.stash[LABGRID_ENV_KEY] = env
