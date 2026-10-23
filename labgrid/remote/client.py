@@ -914,6 +914,14 @@ class ClientSession:
                 args["name"] = name
             args.update(resource.args)
             resources.append({resource.cls: args})
+        drivers = []
+        for item in target_factory.load_place_drivers(place.drivers):
+            cls = item.pop("cls")
+            if item["name"] is None:
+                del item["name"]
+            drivers.append({cls: item})
+        if drivers:
+            config["drivers"] = drivers
         return config
 
     def print_env(self):

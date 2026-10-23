@@ -483,6 +483,14 @@ def test_place_drivers_env(place_drivers_acquire, tmpdir, monkeypatch):
     with pytest.raises(NoDriverFoundError):
         t.get_driver("PowerProtocol", activate=False)
 
+def test_place_drivers_print_env(place_drivers_acquire):
+    with pexpect.spawn('python -m labgrid.remote.client -p test env') as spawn:
+        spawn.expect("drivers:")
+        spawn.expect("- ManualPowerDriver: {}")
+        spawn.expect(pexpect.EOF)
+        spawn.close()
+        assert spawn.exitstatus == 0, spawn.before.strip()
+
 def test_resource_conflict(place_acquire, tmpdir):
     with pexpect.spawn('python -m labgrid.remote.client -p test2 create') as spawn:
         spawn.expect(pexpect.EOF)
